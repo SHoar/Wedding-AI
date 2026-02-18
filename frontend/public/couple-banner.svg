@@ -1,0 +1,21 @@
+<svg width="960" height="320" viewBox="0 0 960 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="320" rx="28" fill="url(#paint0_linear_0_1)" />
+  <g opacity="0.35">
+    <circle cx="152" cy="96" r="68" fill="#F9A8D4" />
+    <circle cx="228" cy="82" r="54" fill="#FDA4AF" />
+    <circle cx="810" cy="72" r="62" fill="#C4B5FD" />
+    <circle cx="734" cy="98" r="54" fill="#A5B4FC" />
+  </g>
+  <path d="M470 175C465.067 169.8 452.8 160.3 443 156.5C430.5 151.6 414.5 154.2 406.5 165.5C398.2 177.3 399.9 194.3 410.5 204C420 212.8 436.6 216.5 447 209.5C456.9 202.8 464.3 194.1 480 175Z" fill="#FB7185"/>
+  <path d="M490 175C494.933 169.8 507.2 160.3 517 156.5C529.5 151.6 545.5 154.2 553.5 165.5C561.8 177.3 560.1 194.3 549.5 204C540 212.8 523.4 216.5 513 209.5C503.1 202.8 495.7 194.1 480 175Z" fill="#FB7185"/>
+  <text x="480" y="265" text-anchor="middle" fill="#831843" font-family="Inter, sans-serif" font-size="34" font-weight="700">
+    Alex &amp; Jordan " June 18, 2026
+  </text>
+  <defs>
+    <linearGradient id="paint0_linear_0_1" x1="0" y1="0" x2="960" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF1F2"/>
+      <stop offset="0.56" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#EEF2FF"/>
+    </linearGradient>
+  </defs>
+</svg>
