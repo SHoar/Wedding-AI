@@ -2,23 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useApi } from "./useApi";
 
 const DEFAULT_WEDDING_ID = Number(import.meta.env.VITE_DEFAULT_WEDDING_ID || 1);
+const normalizeWeddingId = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 export function useActiveWeddingId(explicitWeddingId) {
   const { getPrimaryWeddingId } = useApi();
-  const [weddingId, setWeddingId] = useState(
-    Number.isInteger(Number(explicitWeddingId)) && Number(explicitWeddingId) > 0
-      ? Number(explicitWeddingId)
-      : DEFAULT_WEDDING_ID,
-  );
+  const explicitId = normalizeWeddingId(explicitWeddingId);
+  const hasExplicitWeddingId = explicitId !== null;
+  const [resolvedWeddingId, setResolvedWeddingId] = useState(DEFAULT_WEDDING_ID);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const parsedExplicit = Number(explicitWeddingId);
-    if (Number.isInteger(parsedExplicit) && parsedExplicit > 0) {
-      setWeddingId(parsedExplicit);
-      setError("");
-      setIsLoading(false);
+    if (hasExplicitWeddingId) {
       return;
     }
 
@@ -44,14 +42,14 @@ export function useActiveWeddingId(explicitWeddingId) {
     return () => {
       active = false;
     };
-  }, [explicitWeddingId, getPrimaryWeddingId]);
+  }, [getPrimaryWeddingId, hasExplicitWeddingId]);
 
   return useMemo(
     () => ({
-      weddingId,
-      isLoading,
-      error,
+      weddingId: explicitId ?? resolvedWeddingId,
+      isLoading: hasExplicitWeddingId ? false : isLoading,
+      error: hasExplicitWeddingId ? "" : error,
     }),
-    [error, isLoading, weddingId],
+    [error, explicitId, hasExplicitWeddingId, isLoading, resolvedWeddingId],
   );
 }
