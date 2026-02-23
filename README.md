@@ -62,6 +62,12 @@ React (Vite SPA) --> Rails API (/api/*) --> PostgreSQL
    - Rails API: `http://localhost:3000`
    - AI service health: `http://localhost:8000/health`
 
+## Frontend API routing
+
+- Default frontend API base URL is same-origin: `VITE_API_BASE_URL=/`
+- Docker nginx proxies `/api/*` and `/up` to the Rails `backend` service
+- Vite dev server proxies `/api/*` and `/up` to `VITE_API_PROXY_TARGET` (default `http://localhost:3000`)
+
 ## Frontend auth stub
 
 `frontend/src/hooks/useApi.js` includes JWT + cookie support:

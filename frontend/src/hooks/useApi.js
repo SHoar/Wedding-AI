@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/";
 const DEFAULT_WEDDING_ID = Number(import.meta.env.VITE_DEFAULT_WEDDING_ID || 1);
 
 const isValidWeddingId = (value) => {
@@ -53,7 +53,11 @@ const errorMessageFrom = (error, fallback) => {
   const message = normalizeMessage(error.message);
 
   if (error.code === "ERR_NETWORK") {
-    return `Network error: unable to reach the API at ${API_BASE}. Confirm the backend is running and CORS allows this frontend origin.`;
+    const apiDisplay =
+      API_BASE === "/"
+        ? (typeof window !== "undefined" ? window.location.origin : "current origin")
+        : API_BASE;
+    return `Network error: unable to reach the API at ${apiDisplay}. Confirm the backend is running and API proxy/CORS are configured.`;
   }
 
   return responseError || responseErrors || responseDetail || message || fallback;

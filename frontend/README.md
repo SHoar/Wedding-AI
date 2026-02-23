@@ -28,7 +28,8 @@ npm run preview
 ## Environment variables
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_BASE_URL=/
+VITE_API_PROXY_TARGET=http://localhost:3000
 VITE_DEFAULT_WEDDING_ID=1
 ```
 
