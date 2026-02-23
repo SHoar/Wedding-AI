@@ -1,62 +1,34 @@
-# Wedding AI Dashboard (Rails API + React SPA)
+# Wedding AI Dashboard
 
-This repository now contains a production-style React SPA (`frontend/`) that wraps a Rails API for wedding coordination workflows:
+Full-stack wedding coordination system with:
 
-- Guest management
-- Guestbook messages
-- Task tracking
-- AI Q&A (`/api/weddings/:id/ask`) for your LangChain + PydanticAI + OpenAI `gpt-5-nano` backend
+- **React SPA** frontend (`frontend/`)
+- **Rails API** backend (`backend/`)
+- **Python AI microservice** (`ai_service/`) using **LangChain + PydanticAI + OpenAI `gpt-5-nano`**
+- **PostgreSQL** for application data
+
+## Architecture
+
+```text
+React (Vite SPA) --> Rails API (/api/*) --> PostgreSQL
+                                |
+                                +--> Python AI service (/ask)
+                                       |- LangChain context summarization
+                                       |- PydanticAI agent orchestration
+                                       \- OpenAI gpt-5-nano
+```
 
 ## Repository layout
 
 ```text
 .
-├── frontend/                  # Vite + React SPA
-│   ├── src/
-│   │   ├── layouts/MainLayout.jsx
-│   │   ├── pages/
-│   │   │   ├── DashboardPage.jsx
-│   │   │   ├── GuestsPage.jsx
-│   │   │   ├── GuestbookPage.jsx
-│   │   │   ├── TasksPage.jsx
-│   │   │   └── AIQnAPage.jsx
-│   │   ├── components/
-│   │   └── hooks/useApi.js
-│   ├── Dockerfile
-│   └── .env.example
-└── docker-compose.yml         # Frontend container service
+├── frontend/            # React dashboard (Vite, Tailwind, Router)
+├── backend/             # Rails API-only application
+├── ai_service/          # FastAPI + LangChain + PydanticAI service
+└── docker-compose.yml   # Local orchestration (db + backend + ai + frontend)
 ```
 
-## Quick start (local development)
-
-1. Install frontend dependencies:
-
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-2. Configure API base URL:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Defaults:
-   - `VITE_API_BASE_URL=http://localhost:3000`
-   - `VITE_DEFAULT_WEDDING_ID=1`
-
-3. Start the frontend:
-
-   ```bash
-   npm run dev
-   ```
-
-4. Open `http://localhost:5173`.
-
-## Expected Rails API endpoints
-
-The SPA calls these endpoints:
+## API endpoints consumed by frontend
 
 - `GET /api/weddings`
 - `GET /api/guests`
@@ -64,30 +36,36 @@ The SPA calls these endpoints:
 - `GET /api/tasks`
 - `POST /api/tasks`
 - `PATCH /api/tasks/:id`
-- `GET /api/weddings/:wedding_id/guestbook_entries` (with fallback to `GET /api/guestbook_entries`)
+- `GET /api/weddings/:wedding_id/guestbook_entries`
+- `GET /api/guestbook_entries` (fallback path)
 - `POST /api/guestbook_entries`
 - `POST /api/weddings/:wedding_id/ask`
 
-## Auth wiring
+## Docker quick start
 
-`src/hooks/useApi.js` includes a JWT stub:
+1. Create env files:
 
-- It reads `localStorage.getItem("wedding_jwt")`
-- If present, it sends `Authorization: Bearer <token>` on every request
-- `withCredentials: true` is enabled for cookie-based sessions too
+   ```bash
+   cp .env.example .env
+   ```
 
-## Docker
+2. Set `OPENAI_API_KEY` inside `.env`.
 
-Build and run the SPA in a container:
+3. Build and run:
 
-```bash
-docker compose up --build
-```
+   ```bash
+   docker compose up --build
+   ```
 
-Then open `http://localhost:8080`.
+4. Open:
+   - Frontend: `http://localhost:8080`
+   - Rails API: `http://localhost:3000`
+   - AI service health: `http://localhost:8000/health`
 
-You can override API values at build time:
+## Frontend auth stub
 
-```bash
-VITE_API_BASE_URL=https://api.example.com VITE_DEFAULT_WEDDING_ID=42 docker compose up --build
-```
+`frontend/src/hooks/useApi.js` includes JWT + cookie support:
+
+- Reads `localStorage.getItem("wedding_jwt")`
+- Sends `Authorization: Bearer <token>` when present
+- Uses `withCredentials: true` for cookie-based auth
