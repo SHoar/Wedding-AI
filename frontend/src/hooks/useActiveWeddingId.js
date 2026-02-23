@@ -12,7 +12,7 @@ export function useActiveWeddingId(explicitWeddingId) {
   const explicitId = normalizeWeddingId(explicitWeddingId);
   const hasExplicitWeddingId = explicitId !== null;
   const [resolvedWeddingId, setResolvedWeddingId] = useState(DEFAULT_WEDDING_ID);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!hasExplicitWeddingId);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,13 +21,12 @@ export function useActiveWeddingId(explicitWeddingId) {
     }
 
     let active = true;
-    setIsLoading(true);
-    setError("");
 
     getPrimaryWeddingId()
       .then((resolvedId) => {
         if (!active) return;
-        setWeddingId(resolvedId);
+        setResolvedWeddingId(resolvedId);
+        setError("");
       })
       .catch((resolveError) => {
         if (!active) return;
