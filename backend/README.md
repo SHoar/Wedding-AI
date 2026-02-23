@@ -26,7 +26,7 @@ cp .env.example .env
 Important variables:
 
 - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`
-- `FRONTEND_ORIGIN`
+- `FRONTEND_ORIGINS` (comma-separated list, e.g. `http://localhost:5173,http://localhost:8080`)
 - `AI_SERVICE_URL` (e.g. `http://ai-service:8000` in compose)
 
 ## Local run (without Docker)

@@ -45,7 +45,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       DB_NAME: wedding_ai_development
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173,http://localhost:8080}
       AI_SERVICE_URL: http://ai-service:8000
       RAILS_ENV: development
     depends_on:

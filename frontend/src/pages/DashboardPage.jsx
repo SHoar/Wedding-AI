@@ -1,9 +1,8 @@
 import { CalendarDaysIcon, ClockIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import { StatCard } from "../components/StatCard";
+import { useActiveWeddingId } from "../hooks/useActiveWeddingId";
 import { useApi } from "../hooks/useApi";
-
-const DEFAULT_WEDDING_ID = Number(import.meta.env.VITE_DEFAULT_WEDDING_ID || 1);
 
 const TIMELINE = [
   { time: "2:00 PM", title: "Ceremony", location: "Rose Garden" },
@@ -29,6 +28,11 @@ const statusValue = (status) => {
 
 export function DashboardPage() {
   const { getGuests, getTasks, getGuestbookEntries } = useApi();
+  const {
+    weddingId: resolvedWeddingId,
+    isLoading: isResolvingWedding,
+    error: weddingResolveError,
+  } = useActiveWeddingId();
   const [guests, setGuests] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -46,7 +50,7 @@ export function DashboardPage() {
         const [guestData, taskData, entryData] = await Promise.all([
           getGuests(),
           getTasks(),
-          getGuestbookEntries(DEFAULT_WEDDING_ID),
+          getGuestbookEntries(resolvedWeddingId),
         ]);
 
         if (!active) return;
@@ -70,7 +74,7 @@ export function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [getGuests, getGuestbookEntries, getTasks]);
+  }, [getGuests, getGuestbookEntries, getTasks, resolvedWeddingId]);
 
   const metrics = useMemo(() => {
     const totalGuests = guests.length;
@@ -98,6 +102,11 @@ export function DashboardPage() {
       {error ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
+        </div>
+      ) : null}
+      {weddingResolveError ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {weddingResolveError}
         </div>
       ) : null}
 
@@ -170,7 +179,10 @@ export function DashboardPage() {
             <CalendarDaysIcon className="size-5 text-indigo-600" />
             <h2 className="text-lg font-semibold text-slate-900">Recent guestbook notes</h2>
           </div>
-          {isLoading ? <p className="text-sm text-slate-500">Refreshing...</p> : null}
+          <p className="text-sm text-slate-500">
+            Wedding id {resolvedWeddingId}
+            {isLoading || isResolvingWedding ? " • refreshing..." : ""}
+          </p>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">

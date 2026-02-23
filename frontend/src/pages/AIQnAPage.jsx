@@ -1,8 +1,7 @@
 import { SparklesIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import { useActiveWeddingId } from "../hooks/useActiveWeddingId";
 import { useApi } from "../hooks/useApi";
-
-const DEFAULT_WEDDING_ID = Number(import.meta.env.VITE_DEFAULT_WEDDING_ID || 1);
 
 const PROMPT_SUGGESTIONS = [
   "What time should guests arrive for the ceremony?",
@@ -10,8 +9,13 @@ const PROMPT_SUGGESTIONS = [
   "Which tasks are still open for this week?",
 ];
 
-export function AIQnAPage({ weddingId = DEFAULT_WEDDING_ID }) {
+export function AIQnAPage({ weddingId }) {
   const { askWeddingAI } = useApi();
+  const {
+    weddingId: resolvedWeddingId,
+    isLoading: isResolvingWedding,
+    error: weddingResolveError,
+  } = useActiveWeddingId(weddingId);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
@@ -25,7 +29,7 @@ export function AIQnAPage({ weddingId = DEFAULT_WEDDING_ID }) {
     setIsLoading(true);
 
     try {
-      const response = await askWeddingAI(weddingId, question.trim());
+      const response = await askWeddingAI(resolvedWeddingId, question.trim());
       setAnswer(response);
     } catch (askError) {
       setError(askError.message || "Unable to get an answer.");
@@ -44,6 +48,10 @@ export function AIQnAPage({ weddingId = DEFAULT_WEDDING_ID }) {
         <p className="mt-1 text-sm text-slate-600">
           Ask about schedule details, venue logistics, or guest planning data.
         </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Routing question to wedding id <span className="font-semibold">{resolvedWeddingId}</span>
+          {isResolvingWedding ? " (resolving...)" : ""}.
+        </p>
 
         <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
           <label className="block text-sm font-medium text-slate-700">
@@ -57,12 +65,18 @@ export function AIQnAPage({ weddingId = DEFAULT_WEDDING_ID }) {
           </label>
           <button
             className="rounded-xl bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isLoading || !question.trim()}
+            disabled={isLoading || isResolvingWedding || !question.trim()}
             type="submit"
           >
             {isLoading ? "Thinking..." : "Ask AI"}
           </button>
         </form>
+
+        {weddingResolveError ? (
+          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            {weddingResolveError}
+          </p>
+        ) : null}
 
         {error ? (
           <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
