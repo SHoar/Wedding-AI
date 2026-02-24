@@ -1,6 +1,8 @@
 class GuestbookEntry < ApplicationRecord
   belongs_to :wedding
 
+  scope :for_wedding, ->(wedding_id) { wedding_id.present? ? where(wedding_id: wedding_id) : all }
+
   validates :guest_name, presence: true
   validates :message, presence: true
 

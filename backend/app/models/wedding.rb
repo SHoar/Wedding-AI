@@ -7,6 +7,18 @@ class Wedding < ApplicationRecord
   validates :venue_name, presence: true
   validates :date, presence: true
 
+  def guests_for_ask
+    guests.order(:created_at)
+  end
+
+  def tasks_for_ask
+    tasks.order(:created_at)
+  end
+
+  def guestbook_entries_for_ask
+    guestbook_entries.order(:created_at)
+  end
+
   def as_api_json
     {
       id: id,

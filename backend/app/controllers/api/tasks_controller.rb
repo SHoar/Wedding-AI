@@ -1,13 +1,8 @@
 module Api
   class TasksController < BaseController
     def index
-      tasks = if params[:wedding_id].present?
-                Task.where(wedding_id: params[:wedding_id])
-              else
-                Task.all
-              end
-
-      render json: tasks.order(created_at: :desc).map(&:as_api_json)
+      tasks = Task.for_wedding(params[:wedding_id]).order(created_at: :desc)
+      render json: tasks.map(&:as_api_json)
     end
 
     def show

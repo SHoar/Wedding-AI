@@ -1,13 +1,8 @@
 module Api
   class GuestsController < BaseController
     def index
-      guests = if params[:wedding_id].present?
-                 Guest.where(wedding_id: params[:wedding_id])
-               else
-                 Guest.all
-               end
-
-      render json: guests.order(created_at: :desc).map(&:as_api_json)
+      guests = Guest.for_wedding(params[:wedding_id]).order(created_at: :desc)
+      render json: guests.map(&:as_api_json)
     end
 
     def show

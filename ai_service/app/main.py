@@ -244,9 +244,11 @@ async def ask(payload: AskRequest) -> AskResponse:
 
     try:
         context_markdown = build_context_markdown(payload)
-        context_summary = summarize_context(context_markdown)
         store = _get_rag_store()
-        retrieved_context = get_retrieved_context(payload.question, store)
+        context_summary, retrieved_context = await asyncio.gather(
+            asyncio.to_thread(summarize_context, context_markdown),
+            asyncio.to_thread(get_retrieved_context, payload.question, store),
+        )
         answer = await generate_answer(question, context_summary, retrieved_context)
     except Exception as exc:  # pragma: no cover - upstream LLM/network exceptions
         raise HTTPException(status_code=502, detail=f"AI request failed: {exc}") from exc
