@@ -1,30 +1,26 @@
 """
 RAG retrieval for Wedding AI: embed docs from docs/ and query with Chroma.
 """
-import os
-from pathlib import Path
-from typing import Any
 
-from langchain_core.documents import Document
+from pathlib import Path
+
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
+
+from app.config import get_settings
 
 # Collection and persistence
 COLLECTION_NAME = "wedding_ai_docs"
-DEFAULT_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
-DOCS_DIR = os.getenv("DOCS_DIR", "./docs")
-RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
-EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
 
 def get_embedding_model() -> OpenAIEmbeddings:
-    """Return OpenAI embeddings using OPENAI_API_KEY and timeout from env."""
-    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
-    timeout = float(os.getenv("AI_HTTP_TIMEOUT", "45"))
+    """Return OpenAI embeddings using settings (OPENAI_API_KEY, timeout, model)."""
+    s = get_settings()
     return OpenAIEmbeddings(
-        model=EMBEDDING_MODEL,
-        openai_api_key=api_key or None,
-        request_timeout=timeout,
+        model=s.openai_embedding_model,
+        openai_api_key=s.openai_api_key_stripped or None,
+        request_timeout=s.ai_http_timeout,
     )
 
 
@@ -73,11 +69,11 @@ def get_or_build_store(docs_dir: Path | None = None) -> Chroma | None:
     and docs_dir has Markdown files, index them. Uses OPENAI_API_KEY for embeddings.
     Returns None if OPENAI_API_KEY is missing or docs_dir is missing/empty when store is empty.
     """
-    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
-    if not api_key:
+    s = get_settings()
+    if not s.openai_api_key_stripped:
         return None
 
-    persist_path = Path(DEFAULT_PERSIST_DIR)
+    persist_path = Path(s.chroma_persist_dir)
     persist_path.mkdir(parents=True, exist_ok=True)
     embed = get_embedding_model()
 
@@ -94,7 +90,7 @@ def get_or_build_store(docs_dir: Path | None = None) -> Chroma | None:
         count = 0
 
     if count == 0:
-        dir_path = docs_dir or Path(DOCS_DIR)
+        dir_path = docs_dir or Path(s.docs_dir)
         documents = _load_docs_from_dir(dir_path)
         if not documents:
             return store  # return empty store so callers can still call retrieve (no results)
@@ -110,7 +106,7 @@ def retrieve(question: str, store: Chroma | None, k: int | None = None) -> list[
     """
     if not store or not (question or "").strip():
         return []
-    top_k = k if k is not None else RAG_TOP_K
+    top_k = k if k is not None else get_settings().rag_top_k
     try:
         docs = store.similarity_search(question.strip(), k=top_k)
         return [d.page_content for d in docs]

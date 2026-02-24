@@ -42,7 +42,9 @@ export function TaskCard({ task, isSaving, onStatusChange }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-slate-900">{task.title || "Untitled task"}</h3>
+        <h3 className="text-lg font-semibold text-slate-900">
+          {task.title || "Untitled task"}
+        </h3>
         <span
           className={[
             "rounded-full px-3 py-1 text-xs font-semibold",

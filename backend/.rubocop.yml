@@ -1,0 +1,33 @@
+require:
+  - ./lib/rubocop/cop/rails/raw_sql
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.3
+  Exclude:
+    - "bin/**/*"
+    - "db/schema.rb"
+    - "db/migrate/**/*"
+    - "node_modules/**/*"
+    - "vendor/**/*"
+
+# Enforce no raw SQL; use Active Record only.
+Rails/RawSql:
+  Enabled: true
+
+Layout/LineLength:
+  Max: 120
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+    - "config/routes.rb"
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false

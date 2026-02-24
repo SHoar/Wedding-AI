@@ -1,4 +1,4 @@
-FROM ruby:3.3.6-slim
+FROM ruby:3.3.10-slim
 
 ENV BUNDLE_PATH=/usr/local/bundle \
     BUNDLE_JOBS=4 \
@@ -9,10 +9,10 @@ ENV BUNDLE_PATH=/usr/local/bundle \
 WORKDIR /app
 
 RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends build-essential libpq-dev curl && \
+    apt-get install -y --no-install-recommends build-essential libpq-dev libyaml-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
-COPY Gemfile ./
+COPY Gemfile Gemfile.lock ./
 RUN bundle install
 
 COPY . .

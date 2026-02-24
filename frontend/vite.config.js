@@ -1,23 +1,29 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import process from 'node:process'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import process from "node:process";
 
-const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000'
+const apiProxyTarget =
+  process.env.VITE_API_PROXY_TARGET || "http://localhost:3000";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.js"],
+  },
   server: {
     proxy: {
-      '/api': {
+      "/api": {
         target: apiProxyTarget,
         changeOrigin: true,
       },
-      '/up': {
+      "/up": {
         target: apiProxyTarget,
         changeOrigin: true,
       },
     },
   },
-})
+});

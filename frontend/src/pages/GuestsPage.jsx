@@ -152,7 +152,9 @@ export function GuestsPage() {
         </form>
 
         {error ? (
-          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </p>
         ) : null}
       </article>
 
@@ -161,11 +163,16 @@ export function GuestsPage() {
           <UserGroupIcon className="size-5 text-indigo-600" />
           <h2 className="text-lg font-semibold text-slate-900">Guest list</h2>
         </div>
-        <p className="mt-1 text-sm text-slate-600">{guests.length} guests currently tracked</p>
+        <p className="mt-1 text-sm text-slate-600">
+          {guests.length} guests currently tracked
+        </p>
 
         <div className="mt-4 space-y-3">
           {guests.map((guest) => (
-            <GuestCard guest={guest} key={guest.id || `${guest.name}-${guest.email}`} />
+            <GuestCard
+              guest={guest}
+              key={guest.id || `${guest.name}-${guest.email}`}
+            />
           ))}
 
           {!guests.length && !isLoading ? (
@@ -175,7 +182,9 @@ export function GuestsPage() {
           ) : null}
 
           {isLoading ? (
-            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Loading guests...</p>
+            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+              Loading guests...
+            </p>
           ) : null}
         </div>
       </article>

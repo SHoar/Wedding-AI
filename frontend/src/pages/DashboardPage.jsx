@@ -1,4 +1,8 @@
-import { CalendarDaysIcon, ClockIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import {
+  CalendarDaysIcon,
+  ClockIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import { StatCard } from "../components/StatCard";
 import { useActiveWeddingId } from "../hooks/useActiveWeddingId";
@@ -82,10 +86,17 @@ export function DashboardPage() {
     const dietaryRequests = guests.filter((g) => g.dietary_notes).length;
     const projectedAttendance =
       totalGuests +
-      guests.reduce((sum, guest) => sum + Number.parseInt(guest.plus_one_count || 0, 10), 0);
+      guests.reduce(
+        (sum, guest) => sum + Number.parseInt(guest.plus_one_count || 0, 10),
+        0
+      );
 
-    const doneCount = tasks.filter((task) => statusValue(task.status) === 2).length;
-    const completionRate = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+    const doneCount = tasks.filter(
+      (task) => statusValue(task.status) === 2
+    ).length;
+    const completionRate = tasks.length
+      ? Math.round((doneCount / tasks.length) * 100)
+      : 0;
 
     return {
       totalGuests,
@@ -111,7 +122,11 @@ export function DashboardPage() {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Guest records" value={metrics.totalGuests} hint="Current RSVP entries" />
+        <StatCard
+          label="Guest records"
+          value={metrics.totalGuests}
+          hint="Current RSVP entries"
+        />
         <StatCard
           label="Projected attendance"
           value={metrics.projectedAttendance}
@@ -133,14 +148,21 @@ export function DashboardPage() {
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
           <div className="flex items-center gap-2">
             <ClockIcon className="size-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Day-of timeline</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Day-of timeline
+            </h2>
           </div>
           <ol className="mt-4 space-y-3">
             {TIMELINE.map((item) => (
-              <li key={item.title} className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+              <li
+                key={item.title}
+                className="flex items-start gap-3 rounded-xl bg-slate-50 p-3"
+              >
                 <span className="mt-1 size-2 shrink-0 rounded-full bg-indigo-500" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">{item.time}</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {item.time}
+                  </p>
                   <p className="text-sm text-slate-700">{item.title}</p>
                   <p className="text-xs text-slate-500">{item.location}</p>
                 </div>
@@ -152,12 +174,16 @@ export function DashboardPage() {
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <UserGroupIcon className="size-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Guest status</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Guest status
+            </h2>
           </div>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
               <dt className="text-slate-600">Profiles with contact info</dt>
-              <dd className="font-semibold text-slate-900">{metrics.guestsWithContact}</dd>
+              <dd className="font-semibold text-slate-900">
+                {metrics.guestsWithContact}
+              </dd>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
               <dt className="text-slate-600">Guestbook signatures</dt>
@@ -177,7 +203,9 @@ export function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <CalendarDaysIcon className="size-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Recent guestbook notes</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Recent guestbook notes
+            </h2>
           </div>
           <p className="text-sm text-slate-500">
             Wedding id {resolvedWeddingId}
@@ -200,7 +228,8 @@ export function DashboardPage() {
 
           {!entries.length && !isLoading ? (
             <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600 md:col-span-3">
-              Guestbook entries will appear here once guests start leaving messages.
+              Guestbook entries will appear here once guests start leaving
+              messages.
             </p>
           ) : null}
         </div>

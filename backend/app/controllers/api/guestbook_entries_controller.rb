@@ -1,13 +1,8 @@
 module Api
   class GuestbookEntriesController < BaseController
     def index
-      entries = if params[:wedding_id].present?
-                  GuestbookEntry.where(wedding_id: params[:wedding_id])
-                else
-                  GuestbookEntry.all
-                end
-
-      render json: entries.order(created_at: :desc).map(&:as_api_json)
+      entries = GuestbookEntry.for_wedding(params[:wedding_id]).order(created_at: :desc)
+      render json: entries.map(&:as_api_json)
     end
 
     def show

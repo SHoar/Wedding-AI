@@ -79,13 +79,16 @@ export function GuestbookPage({ weddingId }) {
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <PencilSquareIcon className="size-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-slate-900">Sign the guestbook</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Sign the guestbook
+          </h2>
         </div>
         <p className="mt-1 text-sm text-slate-600">
           Collect celebratory notes and publish public entries in real time.
         </p>
         <p className="mt-2 text-xs text-slate-500">
-          Posting to wedding id <span className="font-semibold">{resolvedWeddingId}</span>
+          Posting to wedding id{" "}
+          <span className="font-semibold">{resolvedWeddingId}</span>
           {isResolvingWedding ? " (resolving...)" : ""}.
         </p>
 
@@ -132,7 +135,9 @@ export function GuestbookPage({ weddingId }) {
         </form>
 
         {error ? (
-          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </p>
         ) : null}
         {weddingResolveError ? (
           <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
@@ -142,10 +147,15 @@ export function GuestbookPage({ weddingId }) {
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
-        <h2 className="text-lg font-semibold text-slate-900">Messages ({entries.length})</h2>
+        <h2 className="text-lg font-semibold text-slate-900">
+          Messages ({entries.length})
+        </h2>
         <div className="mt-4 space-y-3">
           {entries.map((entry) => (
-            <GuestbookEntry entry={entry} key={entry.id || `${entry.guest_name}-${entry.message}`} />
+            <GuestbookEntry
+              entry={entry}
+              key={entry.id || `${entry.guest_name}-${entry.message}`}
+            />
           ))}
 
           {!entries.length && !isLoading ? (

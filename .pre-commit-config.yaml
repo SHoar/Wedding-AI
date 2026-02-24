@@ -1,0 +1,22 @@
+# Pre-commit hooks for Wedding-AI repo.
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+repos:
+  # Ruff: lint and format ai_service Python code (uses ai_service/pyproject.toml)
+  - repo: local
+    hooks:
+      - id: ruff-ai_service
+        name: ruff (ai_service)
+        entry: bash -c 'cd ai_service && ruff check . --fix && ruff format .'
+        language: system
+        pass_filenames: false
+        files: ^ai_service/.*\.py$
+  # Pytest: unit tests for ai_service
+  - repo: local
+    hooks:
+      - id: pytest-ai_service
+        name: pytest (ai_service)
+        entry: bash -c 'cd ai_service && python -m pytest tests -v --tb=short'
+        language: system
+        pass_filenames: false
+        files: ^ai_service/

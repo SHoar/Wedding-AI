@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ROUTES } from "./constants/routes";
 import { MainLayout } from "./layouts/MainLayout";
 import { AIQnAPage } from "./pages/AIQnAPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -11,12 +12,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout />} path="/">
+        <Route element={<MainLayout />} path={ROUTES.HOME}>
           <Route element={<DashboardPage />} index />
-          <Route element={<GuestsPage />} path="guests" />
-          <Route element={<GuestbookPage />} path="guestbook" />
-          <Route element={<TasksPage />} path="tasks" />
-          <Route element={<AIQnAPage />} path="ai" />
+          <Route element={<GuestsPage />} path={ROUTES.GUESTS.slice(1)} />
+          <Route element={<GuestbookPage />} path={ROUTES.GUESTBOOK.slice(1)} />
+          <Route element={<TasksPage />} path={ROUTES.TASKS.slice(1)} />
+          <Route element={<AIQnAPage />} path={ROUTES.AI.slice(1)} />
           <Route element={<NotFoundPage />} path="*" />
         </Route>
       </Routes>

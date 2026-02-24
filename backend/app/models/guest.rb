@@ -1,6 +1,8 @@
 class Guest < ApplicationRecord
   belongs_to :wedding
 
+  scope :for_wedding, ->(wedding_id) { wedding_id.present? ? where(wedding_id: wedding_id) : all }
+
   validates :name, presence: true
   validates :plus_one_count, numericality: { greater_than_or_equal_to: 0 }
 

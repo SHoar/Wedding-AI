@@ -68,6 +68,17 @@ React (Vite SPA) --> Rails API (/api/*) --> PostgreSQL
 - Docker nginx proxies `/api/*` and `/up` to the Rails `backend` service
 - Vite dev server proxies `/api/*` and `/up` to `VITE_API_PROXY_TARGET` (default `http://localhost:3000`)
 
+## Backend pre-commit (lint + tests)
+
+To run RuboCop and RSpec before each commit:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
+```
+
+The hook runs `bundle exec rubocop` and `bundle exec rspec` in `backend/`. Requires Ruby 3.3+ and `bundle install` in `backend/`.
+
 ## Frontend auth stub
 
 `frontend/src/hooks/useApi.js` includes JWT + cookie support:
