@@ -1,4 +1,8 @@
-import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
+import {
+  Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
+} from "@headlessui/react";
 import {
   Bars3Icon,
   HeartIcon,
@@ -6,13 +10,14 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { NavLink, Outlet } from "react-router-dom";
+import { ROUTES } from "../constants/routes";
 
 const navigation = [
-  { name: "Dashboard", to: "/" },
-  { name: "Guests", to: "/guests" },
-  { name: "Guestbook", to: "/guestbook" },
-  { name: "Tasks", to: "/tasks" },
-  { name: "Wedding AI", to: "/ai" },
+  { name: "Dashboard", to: ROUTES.HOME },
+  { name: "Guests", to: ROUTES.GUESTS },
+  { name: "Guestbook", to: ROUTES.GUESTBOOK },
+  { name: "Tasks", to: ROUTES.TASKS },
+  { name: "Wedding AI", to: ROUTES.AI },
 ];
 
 const linkClasses = ({ isActive }) =>
@@ -26,7 +31,10 @@ const linkClasses = ({ isActive }) =>
 export function MainLayout() {
   return (
     <div className="min-h-screen">
-      <Disclosure as="nav" className="border-b border-rose-100 bg-white/80 backdrop-blur">
+      <Disclosure
+        as="nav"
+        className="border-b border-rose-100 bg-white/80 backdrop-blur"
+      >
         {({ open }) => (
           <>
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -49,7 +57,11 @@ export function MainLayout() {
 
               <DisclosureButton className="rounded-md p-2 text-slate-700 hover:bg-rose-100 md:hidden">
                 <span className="sr-only">Toggle navigation</span>
-                {open ? <XMarkIcon className="size-6" /> : <Bars3Icon className="size-6" />}
+                {open ? (
+                  <XMarkIcon className="size-6" />
+                ) : (
+                  <Bars3Icon className="size-6" />
+                )}
               </DisclosureButton>
             </div>
 
@@ -76,11 +88,12 @@ export function MainLayout() {
                 Alex & Jordan - June 18, 2026
               </p>
               <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                One dashboard for guest logistics, day-of tasks, and AI-assisted Q&A.
+                One dashboard for guest logistics, day-of tasks, and AI-assisted
+                Q&A.
               </h1>
               <p className="max-w-2xl text-slate-600">
-                Keep your timeline, RSVP progress, and guest communications in sync with
-                your Rails + LangChain + PydanticAI stack.
+                Keep your timeline, RSVP progress, and guest communications in
+                sync with your Rails + LangChain + PydanticAI stack.
               </p>
             </div>
           </div>

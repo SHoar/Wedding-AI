@@ -9,7 +9,9 @@ export function GuestbookEntry({ entry }) {
         <span
           className={[
             "rounded-full px-3 py-1 text-xs font-semibold",
-            isPublic ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700",
+            isPublic
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-slate-200 text-slate-700",
           ].join(" ")}
         >
           {isPublic ? "Public" : "Private"}

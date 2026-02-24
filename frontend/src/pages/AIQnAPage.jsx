@@ -1,4 +1,5 @@
 import { SparklesIcon } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useActiveWeddingId } from "../hooks/useActiveWeddingId";
 import { useApi } from "../hooks/useApi";
@@ -9,6 +10,8 @@ const PROMPT_SUGGESTIONS = [
   "Which tasks are still open for this week?",
 ];
 
+const AI_ANSWER_STALE_MS = 5 * 60 * 1000; // 5 minutes
+
 export function AIQnAPage({ weddingId }) {
   const { askWeddingAI } = useApi();
   const {
@@ -17,39 +20,43 @@ export function AIQnAPage({ weddingId }) {
     error: weddingResolveError,
   } = useActiveWeddingId(weddingId);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [submittedQuestion, setSubmittedQuestion] = useState("");
 
-  const handleSubmit = async (event) => {
+  const {
+    data: answer,
+    isFetching: isLoading,
+    error: askError,
+  } = useQuery({
+    queryKey: ["ask", resolvedWeddingId, submittedQuestion],
+    queryFn: () => askWeddingAI(resolvedWeddingId, submittedQuestion),
+    enabled: Boolean(submittedQuestion && resolvedWeddingId),
+    staleTime: AI_ANSWER_STALE_MS,
+  });
+
+  const handleSubmit = (event) => {
     event.preventDefault();
     if (!question.trim()) return;
-
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const response = await askWeddingAI(resolvedWeddingId, question.trim());
-      setAnswer(response);
-    } catch (askError) {
-      setError(askError.message || "Unable to get an answer.");
-    } finally {
-      setIsLoading(false);
-    }
+    setSubmittedQuestion(question.trim());
   };
+
+  const errorMessage =
+    askError?.message || (askError && "Unable to get an answer.");
 
   return (
     <section className="grid gap-6 lg:grid-cols-3">
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
         <div className="flex items-center gap-2">
           <SparklesIcon className="size-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-slate-900">Ask Wedding AI</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Ask Wedding AI
+          </h2>
         </div>
         <p className="mt-1 text-sm text-slate-600">
           Ask about schedule details, venue logistics, or guest planning data.
         </p>
         <p className="mt-2 text-xs text-slate-500">
-          Routing question to wedding id <span className="font-semibold">{resolvedWeddingId}</span>
+          Routing question to wedding id{" "}
+          <span className="font-semibold">{resolvedWeddingId}</span>
           {isResolvingWedding ? " (resolving...)" : ""}.
         </p>
 
@@ -78,13 +85,17 @@ export function AIQnAPage({ weddingId }) {
           </p>
         ) : null}
 
-        {error ? (
-          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+        {errorMessage ? (
+          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {errorMessage}
+          </p>
         ) : null}
 
         {answer ? (
           <article className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-700">Answer</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+              Answer
+            </h3>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-indigo-950">
               {answer}
             </p>

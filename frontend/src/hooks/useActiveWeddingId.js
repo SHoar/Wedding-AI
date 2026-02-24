@@ -11,7 +11,8 @@ export function useActiveWeddingId(explicitWeddingId) {
   const { getPrimaryWeddingId } = useApi();
   const explicitId = normalizeWeddingId(explicitWeddingId);
   const hasExplicitWeddingId = explicitId !== null;
-  const [resolvedWeddingId, setResolvedWeddingId] = useState(DEFAULT_WEDDING_ID);
+  const [resolvedWeddingId, setResolvedWeddingId] =
+    useState(DEFAULT_WEDDING_ID);
   const [isLoading, setIsLoading] = useState(!hasExplicitWeddingId);
   const [error, setError] = useState("");
 
@@ -49,6 +50,6 @@ export function useActiveWeddingId(explicitWeddingId) {
       isLoading: hasExplicitWeddingId ? false : isLoading,
       error: hasExplicitWeddingId ? "" : error,
     }),
-    [error, explicitId, hasExplicitWeddingId, isLoading, resolvedWeddingId],
+    [error, explicitId, hasExplicitWeddingId, isLoading, resolvedWeddingId]
   );
 }

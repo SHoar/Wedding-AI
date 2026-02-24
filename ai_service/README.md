@@ -109,3 +109,7 @@ Example questions that benefit from RAG:
 - “What does the dashboard show?” → surfaces `docs/dashboard.md`
 - “Where do I manage tasks?” → surfaces `docs/tasks.md`
 - “What context does the AI use?” → surfaces `docs/ai-qa.md`
+
+## Future improvements
+
+- **Streaming**: The `/ask` and `/ask_docs` endpoints return the full answer in one response. Streaming the answer (e.g. via SSE or chunked JSON) would allow the frontend to show the first tokens sooner. This would require changes in the AI service (stream from the LLM), the Rails proxy (`AiAgentClient` and `AskController` forwarding the stream), and the frontend (consuming the stream and updating the UI incrementally).
