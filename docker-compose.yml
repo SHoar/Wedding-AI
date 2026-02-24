@@ -18,10 +18,15 @@ services:
   ai-service:
     build:
       context: ./ai_service
+    volumes:
+      - ./docs:/app/docs
+      - chroma_data:/app/data
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-nano}
       AI_HTTP_TIMEOUT: ${AI_HTTP_TIMEOUT:-45}
+      DOCS_DIR: /app/docs
+      CHROMA_PERSIST_DIR: /app/data/chroma
     ports:
       - "8000:8000"
     healthcheck:
@@ -62,6 +67,8 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/}
         VITE_DEFAULT_WEDDING_ID: ${VITE_DEFAULT_WEDDING_ID:-1}
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:3000
     depends_on:
       - backend
     ports:
@@ -69,3 +76,4 @@ services:
 
 volumes:
   postgres_data:
+  chroma_data:

@@ -1,4 +1,6 @@
+import asyncio
 import os
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -8,15 +10,55 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
+from app.retrieval import DOCS_DIR, get_or_build_store, get_retrieved_context
+
 load_dotenv()
 
+# RAG store: preloaded at startup when possible, else on first /ask
+_rag_store = None
+
+
+def _get_rag_store():
+    global _rag_store
+    if _rag_store is None:
+        _rag_store = get_or_build_store(Path(DOCS_DIR))
+    return _rag_store
+
+
+async def _lifespan(app: FastAPI):
+    """Start RAG store build in background so it is often ready before first /ask."""
+
+    def build_store():
+        global _rag_store
+        try:
+            _rag_store = get_or_build_store(Path(DOCS_DIR))
+        except Exception:
+            pass
+
+    asyncio.create_task(asyncio.to_thread(build_store))
+    yield
+
+OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-nano")
 AI_HTTP_TIMEOUT = float(os.getenv("AI_HTTP_TIMEOUT", "45"))
+
+
+def _require_api_key() -> None:
+    if not OPENAI_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "OPENAI_API_KEY is not set. For Docker: add OPENAI_API_KEY=sk-... to a .env file "
+                "in the project root (next to docker-compose.yml), then run: docker compose up --build"
+            ),
+        )
+
 
 app = FastAPI(
     title="Wedding AI Service",
     version="1.0.0",
     description="LangChain + PydanticAI service for wedding coordination Q&A.",
+    lifespan=_lifespan,
 )
 
 
@@ -62,6 +104,10 @@ class AskResponse(BaseModel):
     answer: str
     model: str
     context_summary: str | None = None
+
+
+class AskDocsRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=4000)
 
 
 SYSTEM_PROMPT = """
@@ -165,13 +211,17 @@ def summarize_context(context_markdown: str) -> str:
     return summary.strip()
 
 
-async def generate_answer(question: str, context_summary: str) -> str:
+async def generate_answer(
+    question: str, context_summary: str, retrieved_context: str = ""
+) -> str:
     prompt = (
         "Question:\n"
         f"{question.strip()}\n\n"
         "Context summary:\n"
         f"{context_summary}"
     )
+    if retrieved_context:
+        prompt += "\n\n" + retrieved_context
     result = await qa_agent.run(prompt)
 
     output = getattr(result, "output", None)
@@ -187,6 +237,7 @@ def health() -> dict[str, str]:
 
 @app.post("/ask", response_model=AskResponse)
 async def ask(payload: AskRequest) -> AskResponse:
+    _require_api_key()
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=422, detail="Question cannot be blank.")
@@ -194,7 +245,9 @@ async def ask(payload: AskRequest) -> AskResponse:
     try:
         context_markdown = build_context_markdown(payload)
         context_summary = summarize_context(context_markdown)
-        answer = await generate_answer(question, context_summary)
+        store = _get_rag_store()
+        retrieved_context = get_retrieved_context(payload.question, store)
+        answer = await generate_answer(question, context_summary, retrieved_context)
     except Exception as exc:  # pragma: no cover - upstream LLM/network exceptions
         raise HTTPException(status_code=502, detail=f"AI request failed: {exc}") from exc
 
@@ -205,4 +258,32 @@ async def ask(payload: AskRequest) -> AskResponse:
         answer=answer,
         model=OPENAI_MODEL,
         context_summary=context_summary or None,
+    )
+
+
+@app.post("/ask_docs", response_model=AskResponse)
+async def ask_docs(payload: AskDocsRequest) -> AskResponse:
+    """Answer using only the RAG documentation (no wedding/guests/tasks/guestbook context)."""
+    _require_api_key()
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="Question cannot be blank.")
+
+    try:
+        store = _get_rag_store()
+        retrieved_context = get_retrieved_context(question, store)
+        context_summary = (
+            "No live wedding data provided; answer from documentation only."
+        )
+        answer = await generate_answer(question, context_summary, retrieved_context)
+    except Exception as exc:  # pragma: no cover
+        raise HTTPException(status_code=502, detail=f"AI request failed: {exc}") from exc
+
+    if not answer:
+        raise HTTPException(status_code=502, detail="AI returned an empty answer.")
+
+    return AskResponse(
+        answer=answer,
+        model=OPENAI_MODEL,
+        context_summary=context_summary,
     )

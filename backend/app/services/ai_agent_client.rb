@@ -5,9 +5,11 @@ require "uri"
 class AiAgentClient
   class RequestError < StandardError; end
 
-  def initialize(base_url: ENV.fetch("AI_SERVICE_URL", "http://localhost:8000"), timeout: 30)
+  DEFAULT_TIMEOUT = 90
+
+  def initialize(base_url: ENV.fetch("AI_SERVICE_URL", "http://localhost:8000"), timeout: nil)
     @base_uri = URI(base_url)
-    @timeout = timeout
+    @timeout = timeout || ENV.fetch("AI_SERVICE_TIMEOUT", DEFAULT_TIMEOUT).to_i
   end
 
   def ask(question:, wedding:, guests:, tasks:, guestbook_entries:)

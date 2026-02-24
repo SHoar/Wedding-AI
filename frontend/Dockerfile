@@ -16,9 +16,13 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Template is substituted at runtime so proxy_pass gets the backend URL (envsubst in image)
+COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/entrypoint.sh /entrypoint.sh
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/entrypoint.sh"]
