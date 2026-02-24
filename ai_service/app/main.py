@@ -1,28 +1,66 @@
+"""FastAPI application: routes, lifespan, and dependencies."""
+
 import asyncio
-import os
+import hashlib
+import threading
 from pathlib import Path
-from typing import Any
+from typing import Annotated
 
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent
+from cachetools import TTLCache
+from fastapi import Depends, FastAPI, HTTPException
 
-from app.retrieval import DOCS_DIR, get_or_build_store, get_retrieved_context
+from app.config import get_settings
+from app.retrieval import get_or_build_store, get_retrieved_context
+from app.schemas import AskDocsRequest, AskRequest, AskResponse
+from app.services.context import build_context_markdown
+from app.services.qa import generate_answer
+from app.services.summarization import summarize_context
 
-load_dotenv()
-
-# RAG store: preloaded at startup when possible, else on first /ask
+# RAG store singleton; preloaded at startup when possible, else on first /ask
 _rag_store = None
+
+# Optional response cache (when CACHE_TTL_SECONDS > 0); thread-safe access
+_response_cache: TTLCache | None = None
+_cache_lock = threading.Lock()
+
+
+def _get_response_cache() -> TTLCache | None:
+    """Return the response cache if CACHE_TTL_SECONDS > 0, else None."""
+    global _response_cache
+    settings = get_settings()
+    if settings.cache_ttl_seconds <= 0:
+        return None
+    with _cache_lock:
+        if _response_cache is None:
+            _response_cache = TTLCache(
+                maxsize=500,
+                ttl=settings.cache_ttl_seconds,
+            )
+    return _response_cache
+
+
+def _cache_key_ask(question: str, context_markdown: str) -> tuple[str, str]:
+    """Hashable cache key for /ask: (question, hash of context)."""
+    h = hashlib.sha256(context_markdown.encode()).hexdigest()[:32]
+    return (question.strip(), h)
+
+
+def _cache_key_ask_docs(question: str) -> str:
+    """Cache key for /ask_docs."""
+    return question.strip()
 
 
 def _get_rag_store():
     global _rag_store
     if _rag_store is None:
-        _rag_store = get_or_build_store(Path(DOCS_DIR))
+        settings = get_settings()
+        _rag_store = get_or_build_store(Path(settings.docs_dir))
     return _rag_store
+
+
+def get_rag_store_dep():
+    """FastAPI dependency: return the RAG store (for DI in tests)."""
+    return _get_rag_store()
 
 
 async def _lifespan(app: FastAPI):
@@ -31,20 +69,18 @@ async def _lifespan(app: FastAPI):
     def build_store():
         global _rag_store
         try:
-            _rag_store = get_or_build_store(Path(DOCS_DIR))
+            settings = get_settings()
+            _rag_store = get_or_build_store(Path(settings.docs_dir))
         except Exception:
             pass
 
     asyncio.create_task(asyncio.to_thread(build_store))
     yield
 
-OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-nano")
-AI_HTTP_TIMEOUT = float(os.getenv("AI_HTTP_TIMEOUT", "45"))
 
-
-def _require_api_key() -> None:
-    if not OPENAI_API_KEY:
+def require_api_key() -> None:
+    """Raise 503 if OPENAI_API_KEY is not set."""
+    if not get_settings().openai_api_key_stripped:
         raise HTTPException(
             status_code=503,
             detail=(
@@ -62,230 +98,105 @@ app = FastAPI(
 )
 
 
-class WeddingContext(BaseModel):
-    id: int
-    name: str
-    date: str | None = None
-    venue_name: str | None = None
-
-
-class GuestContext(BaseModel):
-    id: int | None = None
-    name: str
-    email: str | None = None
-    phone: str | None = None
-    plus_one_count: int = 0
-    dietary_notes: str | None = None
-
-
-class TaskContext(BaseModel):
-    id: int | None = None
-    title: str
-    status: str | None = None
-    priority: str | None = None
-
-
-class GuestbookEntryContext(BaseModel):
-    id: int | None = None
-    guest_name: str
-    message: str
-    is_public: bool = True
-
-
-class AskRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=4000)
-    wedding: WeddingContext
-    guests: list[GuestContext] = Field(default_factory=list)
-    tasks: list[TaskContext] = Field(default_factory=list)
-    guestbook_entries: list[GuestbookEntryContext] = Field(default_factory=list)
-
-
-class AskResponse(BaseModel):
-    answer: str
-    model: str
-    context_summary: str | None = None
-
-
-class AskDocsRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=4000)
-
-
-SYSTEM_PROMPT = """
-You are an operations copilot for a wedding coordination dashboard.
-Use the provided planning context to answer clearly and concretely.
-
-Rules:
-- If data is missing, say so explicitly.
-- Prefer concise, practical answers.
-- For schedule questions, mention exact times if provided.
-- For guest or task summaries, provide actionable next steps.
-""".strip()
-
-
-langchain_model = ChatOpenAI(
-    model=OPENAI_MODEL,
-    temperature=0,
-    timeout=AI_HTTP_TIMEOUT,
-)
-
-qa_agent = Agent(
-    model=f"openai:{OPENAI_MODEL}",
-    system_prompt=SYSTEM_PROMPT,
-)
-
-
-def _normalize_llm_content(content: Any) -> str:
-    if content is None:
-        return ""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        normalized_parts: list[str] = []
-        for part in content:
-            if isinstance(part, dict) and "text" in part:
-                normalized_parts.append(str(part["text"]))
-            else:
-                normalized_parts.append(str(part))
-        return " ".join(normalized_parts).strip()
-    return str(content)
-
-
-def build_context_markdown(payload: AskRequest) -> str:
-    wedding = payload.wedding
-    lines = [
-        f"Wedding: {wedding.name}",
-        f"Date: {wedding.date or 'unknown'}",
-        f"Venue: {wedding.venue_name or 'unknown'}",
-        "",
-        "Guests:",
-    ]
-
-    if payload.guests:
-        for guest in payload.guests:
-            lines.append(
-                f"- {guest.name} | email={guest.email or '-'} | phone={guest.phone or '-'} | "
-                f"plus_ones={guest.plus_one_count} | dietary={guest.dietary_notes or '-'}"
-            )
-    else:
-        lines.append("- No guest records provided.")
-
-    lines.append("")
-    lines.append("Tasks:")
-    if payload.tasks:
-        for task in payload.tasks:
-            lines.append(
-                f"- {task.title} | status={task.status or 'pending'} | priority={task.priority or 'medium'}"
-            )
-    else:
-        lines.append("- No tasks provided.")
-
-    lines.append("")
-    lines.append("Guestbook:")
-    if payload.guestbook_entries:
-        for entry in payload.guestbook_entries:
-            visibility = "public" if entry.is_public else "private"
-            lines.append(f"- {entry.guest_name} ({visibility}): {entry.message}")
-    else:
-        lines.append("- No guestbook entries provided.")
-
-    return "\n".join(lines)
-
-
-def summarize_context(context_markdown: str) -> str:
-    summary_prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "You summarize wedding planning context for downstream Q&A. Keep facts, remove fluff.",
-            ),
-            (
-                "human",
-                "Summarize the context below in bullet points grouped by schedule, guests, and tasks.\n\n{context}",
-            ),
-        ]
-    )
-
-    chain = summary_prompt | langchain_model
-    result = chain.invoke({"context": context_markdown})
-    summary = _normalize_llm_content(getattr(result, "content", result))
-    return summary.strip()
-
-
-async def generate_answer(
-    question: str, context_summary: str, retrieved_context: str = ""
-) -> str:
-    prompt = (
-        "Question:\n"
-        f"{question.strip()}\n\n"
-        "Context summary:\n"
-        f"{context_summary}"
-    )
-    if retrieved_context:
-        prompt += "\n\n" + retrieved_context
-    result = await qa_agent.run(prompt)
-
-    output = getattr(result, "output", None)
-    if output is None:
-        output = getattr(result, "data", None)
-    return _normalize_llm_content(output or result).strip()
-
-
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "model": OPENAI_MODEL}
+    return {"status": "ok", "model": get_settings().openai_model}
 
 
 @app.post("/ask", response_model=AskResponse)
-async def ask(payload: AskRequest) -> AskResponse:
-    _require_api_key()
+async def ask(
+    payload: AskRequest,
+    store: Annotated[object, Depends(get_rag_store_dep)],
+) -> AskResponse:
+    require_api_key()
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=422, detail="Question cannot be blank.")
 
+    settings = get_settings()
+    context_markdown = build_context_markdown(payload)
+    cache = _get_response_cache()
+    if cache is not None:
+        key = _cache_key_ask(question, context_markdown)
+        with _cache_lock:
+            if key in cache:
+                return cache[key]
+
     try:
-        context_markdown = build_context_markdown(payload)
-        store = _get_rag_store()
         context_summary, retrieved_context = await asyncio.gather(
-            asyncio.to_thread(summarize_context, context_markdown),
+            asyncio.to_thread(
+                summarize_context,
+                context_markdown,
+                settings.openai_model,
+                settings.ai_http_timeout,
+            ),
             asyncio.to_thread(get_retrieved_context, payload.question, store),
         )
-        answer = await generate_answer(question, context_summary, retrieved_context)
-    except Exception as exc:  # pragma: no cover - upstream LLM/network exceptions
+        answer = await generate_answer(
+            question,
+            context_summary,
+            retrieved_context,
+            model=settings.openai_model,
+        )
+    except Exception as exc:
         raise HTTPException(status_code=502, detail=f"AI request failed: {exc}") from exc
 
     if not answer:
         raise HTTPException(status_code=502, detail="AI returned an empty answer.")
 
-    return AskResponse(
+    response = AskResponse(
         answer=answer,
-        model=OPENAI_MODEL,
+        model=settings.openai_model,
         context_summary=context_summary or None,
     )
+    if cache is not None:
+        key = _cache_key_ask(question, context_markdown)
+        with _cache_lock:
+            cache[key] = response
+    return response
 
 
 @app.post("/ask_docs", response_model=AskResponse)
-async def ask_docs(payload: AskDocsRequest) -> AskResponse:
+async def ask_docs(
+    payload: AskDocsRequest,
+    store: Annotated[object, Depends(get_rag_store_dep)],
+) -> AskResponse:
     """Answer using only the RAG documentation (no wedding/guests/tasks/guestbook context)."""
-    _require_api_key()
+    require_api_key()
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=422, detail="Question cannot be blank.")
 
+    settings = get_settings()
+    cache = _get_response_cache()
+    if cache is not None:
+        key = _cache_key_ask_docs(question)
+        with _cache_lock:
+            if key in cache:
+                return cache[key]
+
+    context_summary = "No live wedding data provided; answer from documentation only."
     try:
-        store = _get_rag_store()
-        retrieved_context = get_retrieved_context(question, store)
-        context_summary = (
-            "No live wedding data provided; answer from documentation only."
+        retrieved_context = await asyncio.to_thread(get_retrieved_context, question, store)
+        answer = await generate_answer(
+            question,
+            context_summary,
+            retrieved_context,
+            model=settings.openai_model,
         )
-        answer = await generate_answer(question, context_summary, retrieved_context)
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:
         raise HTTPException(status_code=502, detail=f"AI request failed: {exc}") from exc
 
     if not answer:
         raise HTTPException(status_code=502, detail="AI returned an empty answer.")
 
-    return AskResponse(
+    response = AskResponse(
         answer=answer,
-        model=OPENAI_MODEL,
+        model=settings.openai_model,
         context_summary=context_summary,
     )
+    if cache is not None:
+        key = _cache_key_ask_docs(question)
+        with _cache_lock:
+            cache[key] = response
+    return response

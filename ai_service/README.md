@@ -28,12 +28,14 @@ Optional:
 - `RAG_TOP_K` (default: `5`) — number of doc chunks to retrieve per question
 - `CHROMA_PERSIST_DIR` (default: `./data/chroma`) — where to persist the Chroma index
 - `OPENAI_EMBEDDING_MODEL` (default: `text-embedding-3-small`)
+- `CACHE_TTL_SECONDS` (default: `0`) — when > 0, cache responses for this many seconds to avoid duplicate LLM calls
 
 ## RAG knowledge base
 
 - **Source**: Markdown files in `docs/` (project root). Each page of the Wedding AI app has a tutorial (e.g. `guests.md`, `tasks.md`). The service chunks docs by `##` sections and embeds them with OpenAI.
 - **When indexing runs**: On the first `/ask` (or `/ask_docs`) request, if the Chroma collection is empty, the service scans `DOCS_DIR` for `*.md` and builds the index. Subsequent requests use the existing store. With Docker, `docs/` is mounted at `/app/docs` and `DOCS_DIR` is set to `/app/docs`.
 - **Persistence**: Chroma is stored in `CHROMA_PERSIST_DIR`. In Docker, a volume is used so the index survives restarts.
+- **Performance**: Lowering `RAG_TOP_K` (e.g. to 3) can reduce prompt size and latency. Set `CACHE_TTL_SECONDS` (e.g. 30–60) to cache identical questions and avoid duplicate LLM calls.
 
 ## Local run
 
@@ -45,6 +47,27 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 Ensure `docs/` exists at repo root (or set `DOCS_DIR` to your Markdown folder). The first time you call `/ask` or `/ask_docs`, the RAG index will be built if the store is empty.
+
+## Tests and lint
+
+From the `ai_service` directory:
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests -v
+ruff check . && ruff format .
+```
+
+From the repo root, you can run the same checks via [pre-commit](https://pre-commit.com/):
+
+```bash
+pip install pre-commit
+pre-commit install
+# Hooks run on git commit; or run manually:
+pre-commit run --all-files
+```
+
+Pre-commit runs Ruff (lint + format) and pytest for `ai_service` when any file under `ai_service/` changes.
 
 ## API
 
