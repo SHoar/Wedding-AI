@@ -2,7 +2,6 @@
 
 import asyncio
 import hashlib
-import threading
 from pathlib import Path
 from typing import Annotated
 
@@ -19,18 +18,18 @@ from app.services.summarization import summarize_context
 # RAG store singleton; preloaded at startup when possible, else on first /ask
 _rag_store = None
 
-# Optional response cache (when CACHE_TTL_SECONDS > 0); thread-safe access
+# Optional response cache (when CACHE_TTL_SECONDS > 0); asyncio.Lock avoids blocking the event loop
 _response_cache: TTLCache | None = None
-_cache_lock = threading.Lock()
+_cache_lock = asyncio.Lock()
 
 
-def _get_response_cache() -> TTLCache | None:
+async def _get_response_cache() -> TTLCache | None:
     """Return the response cache if CACHE_TTL_SECONDS > 0, else None."""
     global _response_cache
     settings = get_settings()
     if settings.cache_ttl_seconds <= 0:
         return None
-    with _cache_lock:
+    async with _cache_lock:
         if _response_cache is None:
             _response_cache = TTLCache(
                 maxsize=500,
@@ -115,10 +114,10 @@ async def ask(
 
     settings = get_settings()
     context_markdown = build_context_markdown(payload)
-    cache = _get_response_cache()
+    cache = await _get_response_cache()
     if cache is not None:
         key = _cache_key_ask(question, context_markdown)
-        with _cache_lock:
+        async with _cache_lock:
             if key in cache:
                 return cache[key]
 
@@ -151,7 +150,7 @@ async def ask(
     )
     if cache is not None:
         key = _cache_key_ask(question, context_markdown)
-        with _cache_lock:
+        async with _cache_lock:
             cache[key] = response
     return response
 
@@ -168,10 +167,10 @@ async def ask_docs(
         raise HTTPException(status_code=422, detail="Question cannot be blank.")
 
     settings = get_settings()
-    cache = _get_response_cache()
+    cache = await _get_response_cache()
     if cache is not None:
         key = _cache_key_ask_docs(question)
-        with _cache_lock:
+        async with _cache_lock:
             if key in cache:
                 return cache[key]
 
@@ -197,6 +196,6 @@ async def ask_docs(
     )
     if cache is not None:
         key = _cache_key_ask_docs(question)
-        with _cache_lock:
+        async with _cache_lock:
             cache[key] = response
     return response

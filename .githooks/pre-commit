@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit: backend lint + tests, frontend lint + unit tests. Exit 1 on failure.
+# Pre-commit: backend, frontend, and ai_service lint + tests. Exit 1 on failure.
 set -e
 ROOT="$(git rev-parse --show-toplevel)"
 
@@ -11,3 +11,8 @@ cd "$ROOT/frontend" || exit 1
 npm run lint
 npm run format:check
 npm run test
+
+cd "$ROOT/ai_service" || exit 1
+ruff check .
+ruff format --check .
+python -m pytest tests -v --tb=short

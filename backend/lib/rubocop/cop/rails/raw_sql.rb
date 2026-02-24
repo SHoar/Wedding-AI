@@ -51,8 +51,8 @@ module RuboCop
           when :str, :dstr
             true
           when :send
-            # Arel or other method call that might build SQL
-            node.method_name == :sanitize_sql_array ? false : false
+            # Method calls (sanitize_sql_array, Arel, etc.) are not raw SQL strings
+            false
           else
             false
           end
