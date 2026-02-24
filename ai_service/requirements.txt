@@ -1,0 +1,9 @@
+chromadb
+fastapi
+httpx
+langchain
+langchain-chroma
+langchain-openai
+pydantic-ai
+python-dotenv
+uvicorn[standard]
