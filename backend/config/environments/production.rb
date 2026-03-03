@@ -7,4 +7,10 @@ Rails.application.configure do
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info").to_sym
   config.log_tags = [:request_id]
   config.active_support.report_deprecations = false
+
+  config.cache_store = if ENV["REDIS_URL"].present?
+    [:redis_cache_store, { url: ENV["REDIS_URL"] }]
+  else
+    :memory_store
+  end
 end

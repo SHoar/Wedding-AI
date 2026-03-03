@@ -9,6 +9,7 @@ gem "pg"
 gem "puma"
 gem "rack-cors"
 gem "rails"
+gem "redis"
 gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]
 
 group :development, :test do

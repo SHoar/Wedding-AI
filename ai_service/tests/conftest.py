@@ -14,12 +14,16 @@ def mock_settings():
     settings = MagicMock()
     settings.openai_api_key_stripped = "sk-fake"
     settings.openai_model = "gpt-5-nano"
+    settings.openai_summarization_model = ""
+    settings.openai_qa_model = ""
     settings.openai_embedding_model = "text-embedding-3-small"
     settings.ai_http_timeout = 45.0
     settings.docs_dir = "./docs"
     settings.rag_top_k = 5
     settings.chroma_persist_dir = "./data/chroma"
     settings.cache_ttl_seconds = 0
+    settings.redis_url_stripped = ""
+    settings.rag_cache_ttl_seconds = 0
     return settings
 
 

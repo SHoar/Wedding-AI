@@ -29,6 +29,15 @@ class AiAgentClient
     answer
   end
 
+  def ask_docs(question:)
+    response = post_json("/ask_docs", { question: question })
+
+    answer = response["answer"]
+    raise RequestError, "AI service returned an empty answer." if answer.blank?
+
+    answer
+  end
+
   private
 
   attr_reader :base_uri, :timeout

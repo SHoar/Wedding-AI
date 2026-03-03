@@ -24,6 +24,12 @@ def mock_settings_retrieval(monkeypatch):
     """Patch get_settings in retrieval module for tests."""
     s = MagicMock()
     s.rag_top_k = 5
+    s.rag_top_k_min = 3
+    s.rag_top_k_max = 8
+    s.rag_rerank_enabled = False
+    s.cohere_api_key = ""
+    s.cohere_api_key_stripped = ""
+    s.rag_max_context_chars = 8000
     monkeypatch.setattr("app.retrieval.get_settings", lambda: s)
     return s
 
@@ -32,7 +38,10 @@ def test_retrieve_returns_list_of_strings(mock_store, mock_settings_retrieval):
     """retrieve(question, store, k) returns list of page_content strings."""
     result = retrieve("How do I add a guest?", mock_store, k=2)
     assert result == ["First chunk.", "Second chunk."]
-    mock_store.similarity_search.assert_called_once_with("How do I add a guest?", k=2)
+    mock_store.similarity_search.assert_called_once()
+    call_kwargs = mock_store.similarity_search.call_args[1]
+    assert call_kwargs["k"] == 2
+    assert "How do I add a guest?" in mock_store.similarity_search.call_args[0]
 
 
 def test_retrieve_empty_question_returns_empty_list(mock_store, mock_settings_retrieval):
@@ -64,3 +73,4 @@ def test_get_retrieved_context_empty_chunks_returns_empty_string(
     mock_store.similarity_search.return_value = []
     result = get_retrieved_context("query", mock_store)
     assert result == ""
+    mock_store.similarity_search.assert_called_once()

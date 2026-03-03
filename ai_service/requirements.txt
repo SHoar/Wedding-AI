@@ -1,10 +1,16 @@
 cachetools
 chromadb
+prometheus_client
+redis>=5.0
 fastapi
 httpx
 langchain
 langchain-chroma
 langchain-openai
+langchain-community
+langchain-text-splitters
+rank-bm25
+langchain-cohere
 pydantic-ai
 pydantic-settings
 python-dotenv
