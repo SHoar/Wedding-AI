@@ -141,6 +141,12 @@ Important variables:
 - `FRONTEND_ORIGINS` (comma-separated list, e.g. `http://localhost:5173,http://localhost:8080`)
 - `AI_SERVICE_URL` (e.g. `http://ai-service:8000` in compose)
 
+When using Docker, the backend's environment is set by docker-compose from the **root** `.env`; `backend/.env` is for **local (non-Docker)** runs.
+
+## Run with Docker
+
+From the **project root**: `cp .env.example .env`, set `OPENAI_API_KEY`, then `docker compose up --build`. The backend runs as service `backend` on port 3000; PostgreSQL, Redis, and ai-service are provided by compose (no need to run them locally).
+
 ## Local run (without Docker)
 
 ```bash

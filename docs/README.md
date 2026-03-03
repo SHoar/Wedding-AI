@@ -29,6 +29,8 @@ docker compose up --build
 - Backend API: http://localhost:3000
 - AI service: http://localhost:8000
 
+Redis (port 6379) and Prometheus (http://localhost:9090) also run for caching and metrics.
+
 Local development: run backend (Rails), frontend (Vite), and ai_service (uvicorn) separately; see each component’s README.
 
 ## Page tutorials

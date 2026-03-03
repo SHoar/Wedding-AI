@@ -8,6 +8,10 @@ React SPA for the wedding dashboard, built with:
 - Tailwind CSS
 - Headless UI + Heroicons
 
+## Run with Docker
+
+From the **project root**: `docker compose up --build`. The frontend is served at **http://localhost:8080** (nginx). For local Vite dev (hot reload), use "Start locally" below.
+
 ## Start locally
 
 ```bash

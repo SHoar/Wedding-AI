@@ -25,7 +25,7 @@ React (Vite SPA) --> Rails API (/api/*) --> PostgreSQL
 ├── frontend/            # React dashboard (Vite, Tailwind, Router)
 ├── backend/             # Rails API-only application
 ├── ai_service/          # FastAPI + LangChain + PydanticAI service
-└── docker-compose.yml   # Local orchestration (db + backend + ai + frontend)
+└── docker-compose.yml   # Local orchestration (db, redis, backend, ai-service, frontend, prometheus)
 ```
 
 ## API endpoints consumed by frontend
@@ -61,6 +61,10 @@ React (Vite SPA) --> Rails API (/api/*) --> PostgreSQL
    - Frontend: `http://localhost:8080`
    - Rails API: `http://localhost:3000`
    - AI service health: `http://localhost:8000/health`
+   - Prometheus: `http://localhost:9090`
+   - Redis: `localhost:6379` (no UI; used by backend and ai-service for caching)
+
+   Redis (6379) and Prometheus (9090) also run for caching and metrics.
 
 ## Frontend API routing
 

@@ -30,6 +30,12 @@ Optional:
 - `OPENAI_EMBEDDING_MODEL` (default: `text-embedding-3-small`)
 - `CACHE_TTL_SECONDS` (default: `0`) — when > 0, cache responses for this many seconds to avoid duplicate LLM calls
 
+When running via Docker, **REDIS_URL** and **RAG_CACHE_TTL_SECONDS** are set by compose (defaults: `redis://redis:6379/0`, 300); they can be overridden from the root `.env`.
+
+## Run with Docker
+
+From the **project root**: `docker compose up --build`. The `ai-service` runs with `docs/` mounted at `/app/docs`, Chroma persisted in a volume, and `OPENAI_API_KEY` (and optional overrides) from the root `.env`.
+
 ## RAG knowledge base
 
 - **Source**: Markdown files in `docs/` (project root). Each page of the Wedding AI app has a tutorial (e.g. `guests.md`, `tasks.md`). The service chunks docs by `##` sections and embeds them with OpenAI.
