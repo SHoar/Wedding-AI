@@ -79,4 +79,26 @@ RSpec.describe AiAgentClient do
       }.to raise_error(AiAgentClient::RequestError, /not valid JSON/)
     end
   end
+
+  describe "#ask_docs" do
+    it "returns the answer when the AI service returns 200 with answer" do
+      stub_request(:post, "#{base_url}/ask_docs")
+        .with(
+          body: { "question" => "How do I add a guest?" },
+          headers: { "Content-Type" => "application/json" }
+        )
+        .to_return(status: 200, body: { answer: "Use the Guests page." }.to_json, headers: { "Content-Type" => "application/json" })
+
+      result = client.ask_docs(question: "How do I add a guest?")
+
+      expect(result).to eq("Use the Guests page.")
+    end
+
+    it "raises RequestError when response is not success" do
+      stub_request(:post, "#{base_url}/ask_docs")
+        .to_return(status: 502, body: "Bad Gateway")
+
+      expect { client.ask_docs(question: "How to?") }.to raise_error(AiAgentClient::RequestError, /502/)
+    end
+  end
 end

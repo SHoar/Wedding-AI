@@ -11,6 +11,8 @@ def test_ask_returns_answer_and_model(client):
     assert data["answer"] == "Mocked answer."
     assert data["model"] == "gpt-5-nano"
     assert data.get("context_summary") is not None
+    assert "Server-Timing" in response.headers
+    assert "total" in response.headers["Server-Timing"]
 
 
 def test_ask_blank_question_returns_422(client):

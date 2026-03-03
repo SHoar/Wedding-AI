@@ -142,6 +142,56 @@ export function useApi() {
         }
       },
 
+      /**
+       * Stream answer chunks via SSE. Calls onChunk(content) for each delta.
+       * Returns the full answer when stream ends. Throws on error.
+       */
+      askWeddingAIStream: async (weddingId, question, onChunk) => {
+        const base = import.meta.env.VITE_API_BASE_URL || "";
+        const url = `${base}/api/weddings/${weddingId}/ask/stream?question=${encodeURIComponent(question)}`;
+        const res = await fetch(url, { credentials: "include" });
+        if (!res.ok) {
+          const text = await res.text();
+          let msg = `Request failed: ${res.status}`;
+          try {
+            const data = JSON.parse(text);
+            if (data.error) msg = data.error;
+          } catch (_) {
+            if (text) msg = text;
+          }
+          throw new Error(msg);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let full = "";
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === "delta" && data.content) {
+                  full += data.content;
+                  if (onChunk) onChunk(data.content);
+                }
+                if (data.type === "error") {
+                  throw new Error(data.content || "Stream error");
+                }
+              } catch (e) {
+                if (e instanceof SyntaxError) continue;
+                throw e;
+              }
+            }
+          }
+        }
+        return full || "The AI did not return an answer.";
+      },
+
       getPrimaryWeddingId: async () => {
         try {
           return await fetchPrimaryWeddingId();

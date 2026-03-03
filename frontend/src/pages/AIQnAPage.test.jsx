@@ -5,11 +5,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AIQnAPage } from "./AIQnAPage";
 
 const mockAskWeddingAI = vi.fn();
+const mockAskWeddingAIStream = vi.fn();
 const mockGetPrimaryWeddingId = vi.fn();
 
 vi.mock("../hooks/useApi", () => ({
   useApi: () => ({
     askWeddingAI: mockAskWeddingAI,
+    askWeddingAIStream: mockAskWeddingAIStream,
     getPrimaryWeddingId: mockGetPrimaryWeddingId,
   }),
 }));
@@ -48,7 +50,10 @@ describe("AIQnAPage", () => {
 
   it("submit asks AI and shows answer", async () => {
     const user = userEvent.setup();
-    mockAskWeddingAI.mockResolvedValueOnce("Guests should arrive by 3 PM.");
+    mockAskWeddingAIStream.mockImplementation((_id, _q, onChunk) => {
+      if (onChunk) onChunk("Guests should arrive by 3 PM.");
+      return Promise.resolve("Guests should arrive by 3 PM.");
+    });
 
     render(<AIQnAPage />, { wrapper });
 
@@ -57,9 +62,10 @@ describe("AIQnAPage", () => {
     await user.click(screen.getByRole("button", { name: /Ask AI/i }));
 
     await waitFor(() => {
-      expect(mockAskWeddingAI).toHaveBeenCalledWith(
+      expect(mockAskWeddingAIStream).toHaveBeenCalledWith(
         1,
-        "What time should guests arrive?"
+        "What time should guests arrive?",
+        expect.any(Function)
       );
     });
     await waitFor(() => {
@@ -71,6 +77,7 @@ describe("AIQnAPage", () => {
 
   it("shows error when ask fails", async () => {
     const user = userEvent.setup();
+    mockAskWeddingAIStream.mockRejectedValueOnce(new Error("Service unavailable"));
     mockAskWeddingAI.mockRejectedValueOnce(new Error("Service unavailable"));
 
     render(<AIQnAPage />, { wrapper });

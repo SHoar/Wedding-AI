@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     resources :tasks
 
     post "/weddings/:wedding_id/ask", to: "ask#create"
+    get "/weddings/:wedding_id/ask/stream", to: "ask_stream#stream"
     get "/weddings/:wedding_id/guestbook_entries", to: "guestbook_entries#index"
   end
 end

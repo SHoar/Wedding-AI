@@ -1,6 +1,5 @@
 import { SparklesIcon } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useActiveWeddingId } from "../hooks/useActiveWeddingId";
 import { useApi } from "../hooks/useApi";
 
@@ -10,34 +9,55 @@ const PROMPT_SUGGESTIONS = [
   "Which tasks are still open for this week?",
 ];
 
-const AI_ANSWER_STALE_MS = 5 * 60 * 1000; // 5 minutes
-
 export function AIQnAPage({ weddingId }) {
-  const { askWeddingAI } = useApi();
+  const { askWeddingAI, askWeddingAIStream } = useApi();
   const {
     weddingId: resolvedWeddingId,
     isLoading: isResolvingWedding,
     error: weddingResolveError,
   } = useActiveWeddingId(weddingId);
   const [question, setQuestion] = useState("");
-  const [submittedQuestion, setSubmittedQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [askError, setAskError] = useState(null);
+  const [dots, setDots] = useState(0);
 
-  const {
-    data: answer,
-    isFetching: isLoading,
-    error: askError,
-  } = useQuery({
-    queryKey: ["ask", resolvedWeddingId, submittedQuestion],
-    queryFn: () => askWeddingAI(resolvedWeddingId, submittedQuestion),
-    enabled: Boolean(submittedQuestion && resolvedWeddingId),
-    staleTime: AI_ANSWER_STALE_MS,
-  });
+  useEffect(() => {
+    if (!isLoading) return;
+    const id = setInterval(() => setDots((d) => (d + 1) % 3), 400);
+    return () => clearInterval(id);
+  }, [isLoading]);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (!question.trim()) return;
-    setSubmittedQuestion(question.trim());
-  };
+  const handleSubmit = useCallback(
+    async (event) => {
+      event.preventDefault();
+      const q = question.trim();
+      if (!q || !resolvedWeddingId) return;
+      setAskError(null);
+      setAnswer("");
+      setIsLoading(true);
+      try {
+        const full = await askWeddingAIStream(
+          resolvedWeddingId,
+          q,
+          (chunk) => setAnswer((prev) => prev + chunk)
+        );
+        setAnswer((prev) => (prev ? prev : full));
+      } catch (err) {
+        setAskError(err);
+        try {
+          const fallback = await askWeddingAI(resolvedWeddingId, q);
+          setAnswer(fallback);
+          setAskError(null);
+        } catch (fallbackErr) {
+          setAskError(fallbackErr);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [question, resolvedWeddingId, askWeddingAIStream, askWeddingAI]
+  );
 
   const errorMessage =
     askError?.message || (askError && "Unable to get an answer.");
@@ -75,7 +95,7 @@ export function AIQnAPage({ weddingId }) {
             disabled={isLoading || isResolvingWedding || !question.trim()}
             type="submit"
           >
-            {isLoading ? "Thinking..." : "Ask AI"}
+            {isLoading ? `Thinking${".".repeat(dots + 1)}` : "Ask AI"}
           </button>
         </form>
 
@@ -91,13 +111,13 @@ export function AIQnAPage({ weddingId }) {
           </p>
         ) : null}
 
-        {answer ? (
+        {(answer || isLoading) ? (
           <article className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
               Answer
             </h3>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-indigo-950">
-              {answer}
+              {answer || (isLoading ? `Thinking${".".repeat(dots + 1)}` : "")}
             </p>
           </article>
         ) : null}
