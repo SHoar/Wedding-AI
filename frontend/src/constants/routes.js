@@ -5,4 +5,5 @@ export const ROUTES = {
   GUESTBOOK: "/guestbook",
   TASKS: "/tasks",
   AI: "/ai",
+  FAQ: "/faq",
 };

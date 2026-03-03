@@ -18,6 +18,7 @@ const navigation = [
   { name: "Guestbook", to: ROUTES.GUESTBOOK },
   { name: "Tasks", to: ROUTES.TASKS },
   { name: "Wedding AI", to: ROUTES.AI },
+  { name: "FAQ", to: ROUTES.FAQ },
 ];
 
 const linkClasses = ({ isActive }) =>
