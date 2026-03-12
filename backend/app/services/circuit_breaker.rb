@@ -25,8 +25,7 @@ class CircuitBreaker
     end
 
     def record_success
-      # Optional: clear on success to recover faster. Commented out so we rely on cooldown.
-      # failures.clear
+      failures.clear
     end
 
     private

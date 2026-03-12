@@ -42,11 +42,15 @@ def create_qa_agent(model: str = "gpt-5-nano") -> Agent:
 _default_agent: Agent | None = None
 
 
+_default_agent_model: str | None = None
+
+
 def get_qa_agent(model: str = "gpt-5-nano") -> Agent:
-    """Return the default Q&A agent, creating it if needed."""
-    global _default_agent
-    if _default_agent is None:
+    """Return the default Q&A agent, creating or re-creating if model changed."""
+    global _default_agent, _default_agent_model
+    if _default_agent is None or model != _default_agent_model:
         _default_agent = create_qa_agent(model=model)
+        _default_agent_model = model
     return _default_agent
 
 

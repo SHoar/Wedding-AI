@@ -145,11 +145,18 @@ export function useApi() {
       /**
        * Stream answer chunks via SSE. Calls onChunk(content) for each delta.
        * Returns the full answer when stream ends. Throws on error.
+       * Pass an AbortSignal via options.signal to support cancellation.
        */
-      askWeddingAIStream: async (weddingId, question, onChunk) => {
+      askWeddingAIStream: async (
+        weddingId,
+        question,
+        onChunk,
+        { signal } = {}
+      ) => {
+        const trimmed = (question || "").slice(0, 4000);
         const base = import.meta.env.VITE_API_BASE_URL || "";
-        const url = `${base}/api/weddings/${weddingId}/ask/stream?question=${encodeURIComponent(question)}`;
-        const res = await fetch(url, { credentials: "include" });
+        const url = `${base}/api/weddings/${weddingId}/ask/stream?question=${encodeURIComponent(trimmed)}`;
+        const res = await fetch(url, { credentials: "include", signal });
         if (!res.ok) {
           const text = await res.text();
           let msg = `Request failed: ${res.status}`;
@@ -161,33 +168,40 @@ export function useApi() {
           }
           throw new Error(msg);
         }
+        if (!res.body) {
+          throw new Error("Response body is not available for streaming.");
+        }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let full = "";
         let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === "delta" && data.content) {
-                  full += data.content;
-                  if (onChunk) onChunk(data.content);
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.type === "delta" && data.content) {
+                    full += data.content;
+                    if (onChunk) onChunk(data.content);
+                  }
+                  if (data.type === "error") {
+                    throw new Error(data.content || "Stream error");
+                  }
+                } catch (e) {
+                  if (e instanceof SyntaxError) continue;
+                  throw e;
                 }
-                if (data.type === "error") {
-                  throw new Error(data.content || "Stream error");
-                }
-              } catch (e) {
-                if (e instanceof SyntaxError) continue;
-                throw e;
               }
             }
           }
+        } finally {
+          reader.releaseLock();
         }
         return full || "The AI did not return an answer.";
       },

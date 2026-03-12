@@ -87,7 +87,7 @@ async def _lifespan(app: FastAPI):
             settings = get_settings()
             _rag_store = get_or_build_store(Path(settings.docs_dir))
         except Exception:
-            pass
+            logger.error("rag_store_build_failed", exc_info=True)
 
     asyncio.create_task(asyncio.to_thread(build_store))
 
@@ -115,7 +115,7 @@ async def _lifespan(app: FastAPI):
             except asyncio.CancelledError:
                 break
             except Exception:
-                pass
+                logger.error("rag_index_refresh_failed", exc_info=True)
 
     refresh_task = asyncio.create_task(refresh_index_if_needed())
     try:

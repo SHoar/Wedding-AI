@@ -116,14 +116,24 @@ def _rag_cache_key(question: str, k: int) -> str:
     return f"rag:{question.strip()}:{k}"
 
 
+_rag_backend: "RagCacheBackend | None" = None
+_rag_backend_initialized: bool = False
+
+
 def get_rag_cache_backend() -> "RagCacheBackend | None":
-    """Return RAG cache backend if RAG_CACHE_TTL_SECONDS > 0, else None."""
+    """Return RAG cache backend if RAG_CACHE_TTL_SECONDS > 0, else None (cached singleton)."""
+    global _rag_backend, _rag_backend_initialized
+    if _rag_backend_initialized:
+        return _rag_backend
     settings = get_settings()
     if settings.rag_cache_ttl_seconds <= 0:
-        return None
-    if settings.redis_url_stripped:
-        return RedisRagCacheBackend(settings.redis_url_stripped, settings.rag_cache_ttl_seconds)
-    return MemoryRagCacheBackend(settings.rag_cache_ttl_seconds)
+        _rag_backend = None
+    elif settings.redis_url_stripped:
+        _rag_backend = RedisRagCacheBackend(settings.redis_url_stripped, settings.rag_cache_ttl_seconds)
+    else:
+        _rag_backend = MemoryRagCacheBackend(settings.rag_cache_ttl_seconds)
+    _rag_backend_initialized = True
+    return _rag_backend
 
 
 class RagCacheBackend:
@@ -174,7 +184,7 @@ class RedisRagCacheBackend(RagCacheBackend):
                 return None
             if isinstance(raw, str):
                 return raw
-            return json.loads(raw) if isinstance(raw, str) else None
+            return str(raw)
         except Exception:
             return None
 

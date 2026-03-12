@@ -38,9 +38,26 @@ class AiAgentClient
     answer
   end
 
+  def stream_uri
+    uri = base_uri.dup
+    uri.path = "/ask/stream"
+    uri
+  end
+
+  def timeout_value
+    timeout
+  end
+
   private
 
   attr_reader :base_uri, :timeout
+
+  MAX_RETRIES = 2
+  RETRY_DELAY_BASE = 0.5
+  RETRYABLE_EXCEPTIONS = [
+    Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED,
+    Errno::ECONNRESET, Errno::EHOSTUNREACH, SocketError,
+  ].freeze
 
   def post_json(path, payload)
     uri = base_uri.dup
@@ -51,13 +68,23 @@ class AiAgentClient
     request["Accept"] = "application/json"
     request.body = JSON.generate(payload)
 
-    response = Net::HTTP.start(
-      uri.host,
-      uri.port,
-      use_ssl: uri.scheme == "https",
-      open_timeout: timeout,
-      read_timeout: timeout,
-    ) { |http| http.request(request) }
+    attempts = 0
+    begin
+      attempts += 1
+      response = Net::HTTP.start(
+        uri.host,
+        uri.port,
+        use_ssl: uri.scheme == "https",
+        open_timeout: timeout,
+        read_timeout: timeout,
+      ) { |http| http.request(request) }
+    rescue *RETRYABLE_EXCEPTIONS => e
+      if attempts <= MAX_RETRIES
+        sleep(RETRY_DELAY_BASE * attempts)
+        retry
+      end
+      raise RequestError, "AI service unreachable after #{attempts} attempts: #{e.message}"
+    end
 
     unless response.is_a?(Net::HTTPSuccess)
       raise RequestError, "AI service request failed (#{response.code}): #{response.body}"
@@ -66,6 +93,8 @@ class AiAgentClient
     JSON.parse(response.body)
   rescue JSON::ParserError => e
     raise RequestError, "AI service response was not valid JSON: #{e.message}"
+  rescue RequestError
+    raise
   rescue StandardError => e
     raise RequestError, e.message
   end

@@ -65,7 +65,8 @@ describe("AIQnAPage", () => {
       expect(mockAskWeddingAIStream).toHaveBeenCalledWith(
         1,
         "What time should guests arrive?",
-        expect.any(Function)
+        expect.any(Function),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
     await waitFor(() => {
