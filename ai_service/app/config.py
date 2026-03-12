@@ -56,6 +56,18 @@ class Settings(BaseSettings):
         return (self.cohere_api_key or "").strip()
 
 
+_settings_instance: Settings | None = None
+
+
 def get_settings() -> Settings:
     """Return application settings (cached per process)."""
-    return Settings()
+    global _settings_instance
+    if _settings_instance is None:
+        _settings_instance = Settings()
+    return _settings_instance
+
+
+def reset_settings() -> None:
+    """Clear cached settings (for testing or config reload)."""
+    global _settings_instance
+    _settings_instance = None

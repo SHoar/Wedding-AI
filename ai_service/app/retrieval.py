@@ -162,26 +162,26 @@ def _pick_k(question: str) -> int:
     low, high = s.rag_top_k_min, s.rag_top_k_max
     q = (question or "").strip().lower()
     if "summarize" in q or "list" in q or "all" in q or "each" in q:
-        return min(high, s.rag_top_k_max)
+        return high
     if len(q.split()) <= 3:
-        return max(low, s.rag_top_k_min)
-    return min(high, max(low, s.rag_top_k))
+        return low
+    return max(low, min(high, s.rag_top_k))
 
 
 def _source_filter(question: str) -> dict | None:
     """Optional metadata filter by source when question implies a doc (e.g. 'guests' -> guests.md)."""
     q = (question or "").strip().lower()
-    mapping = {
-        "guest": "guests.md",
-        "guests": "guests.md",
-        "task": "tasks.md",
-        "tasks": "tasks.md",
-        "dashboard": "dashboard.md",
-        "guestbook": "guestbook.md",
-        "ai ": "ai-qa.md",
-        "documentation": "README.md",
-    }
-    for keyword, source in mapping.items():
+    mapping = [
+        ("guestbook", "guestbook.md"),
+        ("guests", "guests.md"),
+        ("guest", "guests.md"),
+        ("tasks", "tasks.md"),
+        ("task", "tasks.md"),
+        ("dashboard", "dashboard.md"),
+        ("ai", "ai-qa.md"),
+        ("documentation", "README.md"),
+    ]
+    for keyword, source in mapping:
         if keyword in q:
             return {"source": source}
     return None
@@ -237,9 +237,10 @@ def _retrieve_docs(
                 )
                 merged = reranker.compress_documents(question.strip(), merged)
             except Exception:
-                pass
+                logger.warning("rag_rerank_failed", exc_info=True)
         return merged[:top_k]
     except Exception:
+        logger.error("rag_retrieval_failed", exc_info=True)
         return []
 
 

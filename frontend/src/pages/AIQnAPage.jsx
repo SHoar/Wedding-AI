@@ -1,5 +1,5 @@
 import { SparklesIcon } from "@heroicons/react/24/outline";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useActiveWeddingId } from "../hooks/useActiveWeddingId";
 import { useApi } from "../hooks/useApi";
 
@@ -8,6 +8,8 @@ const PROMPT_SUGGESTIONS = [
   "Summarize dietary restrictions for catering.",
   "Which tasks are still open for this week?",
 ];
+
+const MAX_QUESTION_LENGTH = 4000;
 
 export function AIQnAPage({ weddingId }) {
   const { askWeddingAI, askWeddingAIStream } = useApi();
@@ -21,6 +23,13 @@ export function AIQnAPage({ weddingId }) {
   const [isLoading, setIsLoading] = useState(false);
   const [askError, setAskError] = useState(null);
   const [dots, setDots] = useState(0);
+  const abortRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -33,6 +42,11 @@ export function AIQnAPage({ weddingId }) {
       event.preventDefault();
       const q = question.trim();
       if (!q || !resolvedWeddingId) return;
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       setAskError(null);
       setAnswer("");
       setIsLoading(true);
@@ -40,10 +54,12 @@ export function AIQnAPage({ weddingId }) {
         const full = await askWeddingAIStream(
           resolvedWeddingId,
           q,
-          (chunk) => setAnswer((prev) => prev + chunk)
+          (chunk) => setAnswer((prev) => prev + chunk),
+          { signal: controller.signal }
         );
         setAnswer((prev) => (prev ? prev : full));
       } catch (err) {
+        if (err.name === "AbortError") return;
         setAskError(err);
         try {
           const fallback = await askWeddingAI(resolvedWeddingId, q);
@@ -85,6 +101,7 @@ export function AIQnAPage({ weddingId }) {
             Your question
             <textarea
               className="mt-1 min-h-28 w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-indigo-200 focus:ring-2"
+              maxLength={MAX_QUESTION_LENGTH}
               onChange={(event) => setQuestion(event.target.value)}
               placeholder="Ask about venue, schedule, and planning details..."
               value={question}

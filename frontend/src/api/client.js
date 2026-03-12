@@ -4,9 +4,12 @@ import { JWT_STORAGE_KEY } from "../constants/storage";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/";
 const DEFAULT_WEDDING_ID = Number(import.meta.env.VITE_DEFAULT_WEDDING_ID || 1);
 
+const REQUEST_TIMEOUT_MS = 90_000;
+
 export const http = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
+  timeout: REQUEST_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

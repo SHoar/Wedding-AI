@@ -19,6 +19,16 @@ module Api
         return
       end
 
+      if CircuitBreaker.open?
+        response.headers["Content-Type"] = "text/event-stream"
+        response.headers["Cache-Control"] = "no-cache"
+        response.stream.write(
+          "data: #{JSON.generate({ type: 'error', content: 'AI is temporarily unavailable. Please try again shortly.' })}\n\n"
+        )
+        response.stream.close
+        return
+      end
+
       context = AskContextBuilder.build(wedding)
       payload = {
         question: question,
@@ -45,26 +55,29 @@ module Api
     private
 
     def stream_ask_to_ai(payload, &block)
-      base_url = ENV.fetch("AI_SERVICE_URL", "http://localhost:8000")
-      uri = URI("#{base_url}/ask/stream")
-      timeout = ENV.fetch("AI_SERVICE_TIMEOUT", "90").to_i
+      client = AiAgentClient.new
+      uri = client.stream_uri
 
-      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: timeout, read_timeout: timeout) do |http|
+      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
+        open_timeout: client.timeout_value, read_timeout: client.timeout_value) do |http|
         request = Net::HTTP::Post.new(uri)
         request["Content-Type"] = "application/json"
         request["Accept"] = "text/event-stream"
         request.body = payload.to_json
 
-        http.request(request) do |response|
-          unless response.is_a?(Net::HTTPSuccess)
-            yield "data: #{JSON.generate({ type: 'error', content: "AI service error: #{response.code}" })}\n\n"
+        http.request(request) do |ai_response|
+          unless ai_response.is_a?(Net::HTTPSuccess)
+            CircuitBreaker.record_failure
+            yield "data: #{JSON.generate({ type: 'error', content: "AI service error: #{ai_response.code}" })}\n\n"
             return
           end
 
-          response.read_body(&block)
+          CircuitBreaker.record_success
+          ai_response.read_body(&block)
         end
       end
     rescue StandardError => e
+      CircuitBreaker.record_failure
       yield "data: #{JSON.generate({ type: 'error', content: e.message })}\n\n"
     end
   end
